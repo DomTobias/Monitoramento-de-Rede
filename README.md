@@ -28,13 +28,13 @@ Antes de começar, você precisará ter instalado em sua máquina:
 
 1. Clone o repositório para sua máquina local:
    ```bash
-   git clone https://github.com/seu-usuario/monitor-rede-coala.git
+   git clone https://github.com/seu-usuario/monitor-rede-coala.git](https://github.com/DomTobias/Monitoramento-de-Rede.git
    cd monitor-rede-coala
    ```
 
 2. Instale as dependências necessárias:
    ```bash
-   pip install -r requirements.txt
+   pip install fastapi uvicorn[standard] winotify
    ```
 
 ## ⚙️ Configuração
