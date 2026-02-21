@@ -1,0 +1,14 @@
+[
+    {
+        "area": "Servidores",
+        "hosts": [
+            {"nome": "Servidor Coala 01", "ip": "192.168.0.18"}
+        ]
+    },
+    {
+        "area": "Portais",
+        "hosts": [
+            {"nome": "Portal Interno", "ip": "192.168.0.37"}
+        ]
+    }
+]

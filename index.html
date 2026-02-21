@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Rede</title>
+    <link rel="icon" type="image/png" href="/icons/favicon.png">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-primary: #ffffff;
+            --text-secondary: #8b949e;
+            --status-on: #238636;
+            --status-off: #da3633;
+            --border-on: #238636;
+            --border-off: #da3633;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .area-section {
+            margin-bottom: 40px;
+        }
+
+        .area-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            border: 2px solid transparent;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+
+        .card.on {
+            border-color: var(--border-on);
+        }
+
+        .card.off {
+            border-color: var(--border-off);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .host-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .status-badge.on {
+            color: var(--status-on);
+        }
+
+        .status-badge.off {
+            color: var(--status-off);
+        }
+
+        .host-ip {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .off-time {
+            color: var(--status-off);
+            font-size: 0.85rem;
+            margin-top: 10px;
+            font-weight: 500;
+            min-height: 1.2em;
+        }
+
+        .loading {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <div class="loading">Carregando status dos dispositivos...</div>
+    </div>
+
+    <script>
+        let currentData = [];
+
+        function formatDuration(seconds) {
+            const d = Math.floor(seconds / 86400);
+            const h = Math.floor((seconds % 86400) / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            
+            let res = "";
+            if (d > 0) res += `${d}d `;
+            res += `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            return res + " segundos";
+        }
+
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                currentData = await response.json();
+                renderDashboard();
+            } catch (error) {
+                console.error('Erro ao buscar status:', error);
+            }
+        }
+
+        function renderDashboard() {
+            const app = document.getElementById('app');
+            if (currentData.length === 0) {
+                app.innerHTML = '<div class="loading">Nenhum host configurado.</div>';
+                return;
+            }
+
+            let html = '';
+            currentData.forEach(area => {
+                html += `
+                    <div class="area-section">
+                        <div class="area-title">${area.area}</div>
+                        <div class="cards-grid">
+                            ${area.hosts.map(host => {
+                                const statusClass = host.status.toLowerCase();
+                                return `
+                                <div class="card ${statusClass}" id="card-${host.ip}">
+                                    <div class="card-header">
+                                        <div class="host-name">${host.nome}</div>
+                                        <div class="status-badge ${statusClass}">${host.status}</div>
+                                    </div>
+                                    <div class="host-ip">${host.ip}</div>
+                                    <div class="off-time" id="uptime-${host.ip}"></div>
+                                </div>
+                            `}).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            app.innerHTML = html;
+            updateUptimes(); 
+        }
+
+        function updateUptimes() {
+            const now = Date.now() / 1000;
+            currentData.forEach(area => {
+                area.hosts.forEach(host => {
+                    const uptimeEl = document.getElementById(`uptime-${host.ip}`);
+                    if (uptimeEl) {
+                        if (host.status === 'OFF' && host.inicio_off) {
+                            const diff = now - host.inicio_off;
+                            uptimeEl.innerText = `Off desde: ${formatDuration(diff)}`;
+                        } else {
+                            uptimeEl.innerText = '';
+                        }
+                    }
+                });
+            });
+        }
+
+        setInterval(updateStatus, 5000);
+        setInterval(updateUptimes, 1000);
+        updateStatus();
+    </script>
+</body>
+</html>
